@@ -54,10 +54,11 @@ function wa_lua_on_handshake_cb(ctx)
     end
 
     if flags[uuid] ~= kHttpHeaderSent then
-        local res = 'CONNECT ' .. host .. ':' .. port .. ' HTTP/1.1\r\n' ..
+        local res = 'CONNECT ' .. host .. ' HTTP/1.1\r\n' ..
+                    'Host: ' .. host .. '\r\n' ..
                     'Q-GUID: '..GUID..'\r\n' ..
                     'Q-Token: '..TOKEN..'\r\n' ..
-                    'Proxy-Connection: Keep-Alive\r\n\r\n'
+                    'Connection: Keep-Alive\r\n\r\n'
         ctx_write(ctx, res)
         -- ctx_debug('wa_lua_on_handshake_cb res '..res)
         flags[uuid] = kHttpHeaderSent
@@ -85,9 +86,6 @@ function wa_lua_on_close_cb(ctx)
     ctx_debug('wa_lua_on_close_cb')
     local uuid = ctx_uuid(ctx)
     flags[uuid] = nil
-    ctx_free(ctx)
-    return SUCCESS
-end
     ctx_free(ctx)
     return SUCCESS
 end
