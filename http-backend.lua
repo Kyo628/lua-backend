@@ -30,24 +30,36 @@ local flags = {}
 local kHttpHeaderSent = 1
 local kHttpHeaderRecived = 2
 
+local GUID = 'NULL'
+local TOKEN = 'NULL'
+
 function wa_lua_on_flags_cb(ctx)
     return DIRECT_WRITE
 end
 
 function wa_lua_on_handshake_cb(ctx)
+    ctx_debug('wa_lua_on_handshake_cb')
     local uuid = ctx_uuid(ctx)
+    local host = ctx_address_host(ctx)
+    local port = ctx_address_port(ctx)
+
+    if(find(host,'iikira.com.token')) then
+        GUID,TOKEN = host:match("(%w+)%.(%w+)%.(%w+)")
+        ctx_debug('GUID:'..GUID)
+        ctx_debug('TOKEN:'..TOKEN)
+    end   
 
     if flags[uuid] == kHttpHeaderRecived then
         return true
     end
 
     if flags[uuid] ~= kHttpHeaderSent then
-        local host = ctx_address_host(ctx)
-        local port = ctx_address_port(ctx)
         local res = 'CONNECT ' .. host .. ':' .. port .. ' HTTP/1.1\r\n' ..
-                    'Host: ' .. host .. ':' .. port .. '\r\n' ..
+                    'Q-GUID: '..GUID..'\r\n' ..
+                    'Q-Token: '..TOKEN..'\r\n' ..
                     'Proxy-Connection: Keep-Alive\r\n\r\n'
         ctx_write(ctx, res)
+        -- ctx_debug('wa_lua_on_handshake_cb res '..res)
         flags[uuid] = kHttpHeaderSent
     end
 
@@ -65,7 +77,7 @@ function wa_lua_on_read_cb(ctx, buf)
 end
 
 function wa_lua_on_write_cb(ctx, buf)
-    ctx_debug('wa_lua_on_write_cb')
+    ctx_debug('wa_lua_on_write_cb') 
     return DIRECT, buf
 end
 
@@ -73,6 +85,9 @@ function wa_lua_on_close_cb(ctx)
     ctx_debug('wa_lua_on_close_cb')
     local uuid = ctx_uuid(ctx)
     flags[uuid] = nil
+    ctx_free(ctx)
+    return SUCCESS
+end
     ctx_free(ctx)
     return SUCCESS
 end
